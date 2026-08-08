@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Where Did My Money Go?</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+    <!-- ============================================ -->
+    <!-- LANDING PAGE (shown when not logged in) -->
+    <!-- ============================================ -->
+    <div id="landingPage" class="landing-page">
+        <div class="landing-container">
+            <!-- Left Side - Branding -->
+            <div class="landing-brand">
+                <div class="landing-logo">
+                    <i class="fas fa-search"></i> Where Did My <span>Money Go?</span>
+                </div>
+                <h1>Your money disappeared.<br />Let's investigate.</h1>
+                <p class="tagline">"Bestie, we need to talk about your spending."</p>
+                
+                <div class="features-preview">
+                    <div class="feature-item">
+                        <i class="fas fa-chart-pie"></i>
+                        <span>Track expenses</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-search-dollar"></i>
+                        <span>Spending analysis</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-calculator"></i>
+                        <span>Girl Math</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-gift"></i>
+                        <span>Financial Wrapped</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side - Login/Register -->
+            <div class="landing-auth">
+                <div class="auth-card" id="loginForm">
+                    <h2>Welcome back, bestie! 🎀</h2>
+                    <p class="auth-sub">Log in to see where your money went.</p>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-user"></i> Username</label>
+                        <input type="text" id="loginUsername" placeholder="Enter your username" />
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-lock"></i> Password</label>
+                        <input type="password" id="loginPassword" placeholder="Enter your password" />
+                    </div>
+                    
+                    <button class="btn btn-primary" id="loginBtn">Log In</button>
+                    
+                    <p class="auth-switch">
+                        Don't have an account? 
+                        <a href="#" id="showRegister">Sign up here</a>
+                    </p>
+                </div>
+
+                <div class="auth-card" id="registerForm" style="display:none;">
+                    <h2>Join the squad! ✨</h2>
+                    <p class="auth-sub">Start tracking your money today.</p>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-user"></i> Choose a username</label>
+                        <input type="text" id="registerUsername" placeholder="Pick a cute username" />
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-lock"></i> Password</label>
+                        <input type="password" id="registerPassword" placeholder="Create a password" />
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-user-tag"></i> Display Name</label>
+                        <input type="text" id="registerDisplayName" placeholder="What should we call you?" />
+                    </div>
+                    
+                    <button class="btn btn-primary" id="registerBtn">Create Account ✨</button>
+                    
+                    <p class="auth-switch">
+                        Already have an account? 
+                        <a href="#" id="showLogin">Log in here</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MAIN APP (shown when logged in) -->
+    <!-- ============================================ -->
+    <div id="app" class="app" style="display:none;">
+
+        <!-- TOP BAR -->
+        <header class="topbar">
+            <div class="logo">
+                <i class="fas fa-search"></i> Where Did My <span>Money Go?</span>
+            </div>
+            <div class="user-badge">
+                <span class="avatar" id="userAvatar">S</span>
+                <span id="userDisplayName">User</span>
+                <button id="logoutBtn" style="background:none;border:none;color:#b35e4a;cursor:pointer;font-weight:600;font-size:13px;padding:4px 8px;">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </header>
+
+        <!-- MAIN -->
+        <div class="main-grid">
+
+            <!-- SIDEBAR -->
+            <nav class="sidebar">
+                <a class="active" data-page="dashboard"><i class="fas fa-home"></i> Home</a>
+                <a data-page="add"><i class="fas fa-plus-circle"></i> Add</a>
+                <a data-page="investigate"><i class="fas fa-search-dollar"></i> Investigate</a>
+                <a data-page="wishlist"><i class="fas fa-heart"></i> Wishlist</a>
+                <a data-page="goals"><i class="fas fa-bullseye"></i> Goals</a>
+                <a data-page="girlmath"><i class="fas fa-calculator"></i> Girl Math</a>
+                <a data-page="wrapped"><i class="fas fa-gift"></i> Wrapped</a>
+                <!-- Reset Button -->
+                <a id="resetBtn" style="margin-top:auto;color:#b35e4a;border-top:2px solid #f0e4dc;padding-top:16px;cursor:pointer;">
+                    <i class="fas fa-trash-alt"></i> Reset Data
+                </a>
+            </nav>
+
+            <!-- CONTENT -->
+            <div class="content">
+
+                <!-- ================= DASHBOARD ================= -->
+                <div id="page-dashboard" class="page active">
+                    <div class="greeting">Good Day, Bestie! 🎀</div>
+                    <div class="sub-greeting">Let's see where your money went this week.</div>
+
+                    <div class="card-row" id="dashStats">
+                        <div class="stat-card">
+                            <div class="label">💸 Total Spent</div>
+                            <div class="value" id="dashTotal">₱0</div>
+                            <div class="sub">this week</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="label">🍜 Food</div>
+                            <div class="value" id="dashFood">₱0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="label">🛍️ Shopping</div>
+                            <div class="value" id="dashShop">₱0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="label">☕ Coffee</div>
+                            <div class="value" id="dashCoffee">₱0</div>
+                        </div>
+                    </div>
+
+                    <div class="meter-box" id="meterBox">
+                        <div class="msg"><i class="fas fa-exclamation-circle"></i> <span id="meterMsg">Girl… what happened?</span></div>
+                        <span class="badge" id="meterBadge">+32%</span>
+                    </div>
+
+                    <div class="category-bars" id="categoryBars">
+                        <h3>📊 This Week's Damage</h3>
+                        <div id="barContainer"></div>
+                    </div>
+
+                    <div class="insight-box" id="insightBox">
+                        <h4>🔎 Quick Insight</h4>
+                        <p id="insightText">You made <span class="em">0</span> purchases this week. Start tracking your spending!</p>
+                    </div>
+                </div>
+
+                <!-- ================= ADD ================= -->
+                <div id="page-add" class="page">
+                    <h2 style="font-size:22px;margin-bottom:4px;">Where did you spend? 💸</h2>
+                    <p style="color:#8a6f66;margin-bottom:20px;">Add your expense and we'll track it.</p>
+
+                    <div class="form-card">
+                        <label>₱ Amount</label>
+                        <input type="number" id="addAmount" placeholder="899.00" step="0.01" />
+
+                        <label>Category</label>
+                        <div class="radio-group" id="addCategory">
+                            <label><input type="radio" name="cat" value="Food" checked /> 🍜 Food</label>
+                            <label><input type="radio" name="cat" value="Shopping" /> 🛍️ Shopping</label>
+                            <label><input type="radio" name="cat" value="Coffee" /> ☕ Coffee</label>
+                            <label><input type="radio" name="cat" value="Beauty" /> 💄 Beauty</label>
+                            <label><input type="radio" name="cat" value="Transport" /> 🚗 Transport</label>
+                            <label><input type="radio" name="cat" value="Bills" /> 📋 Bills</label>
+                            <label><input type="radio" name="cat" value="Entertainment" /> 🎮 Entertainment</label>
+                            <label><input type="radio" name="cat" value="Other" /> 📦 Other</label>
+                        </div>
+
+                        <label>What was it?</label>
+                        <input type="text" id="addDesc" placeholder="New makeup palette" />
+
+                        <button class="btn" id="addBtn">+ Add Expense</button>
+                    </div>
+
+                    <div style="margin-top:20px;font-size:14px;color:#8a6f66;">
+                        <i class="fas fa-clock"></i> Your last 5 expenses will appear here automatically.
+                    </div>
+                    <div id="recentList" style="margin-top:10px;"></div>
+                </div>
+
+                <!-- ================= INVESTIGATE ================= -->
+                <div id="page-investigate" class="page">
+                    <h2 style="font-size:22px;margin-bottom:4px;">🕵🏻‍♀️ Money Investigation</h2>
+                    <p style="color:#8a6f66;margin-bottom:20px;">We analyzed your spending. Here's the tea.</p>
+
+                    <div id="investigationResults">
+                        <div class="insight-box">
+                            <h4>🔎 Investigation Result</h4>
+                            <p id="investText">You made <span class="em">0</span> purchases this week. Add some expenses to investigate!</p>
+                        </div>
+                        <div class="insight-box">
+                            <h4>🛍️ Shopping Alert</h4>
+                            <p id="investShop">No shopping data yet.</p>
+                        </div>
+                        <div class="insight-box">
+                            <h4>☕ Coffee Check</h4>
+                            <p id="investCoffee">No coffee data yet.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ================= WISHLIST ================= -->
+                <div id="page-wishlist" class="page">
+                    <div class="flex-between">
+                        <div>
+                            <h2 style="font-size:22px;">🛍️ My Wishlist</h2>
+                            <p style="color:#8a6f66;">Things you're dreaming about.</p>
+                        </div>
+                        <button class="btn btn-outline" style="width:auto;padding:8px 22px;" id="openWishForm">+ Add Wish</button>
+                    </div>
+
+                    <div id="wishlistGrid" class="wish-grid"></div>
+
+                    <!-- hidden wish form -->
+                    <div id="wishForm" style="display:none;margin-top:20px;" class="form-card">
+                        <label>Item</label>
+                        <input type="text" id="wishName" placeholder="Dress" />
+                        <label>Price (₱)</label>
+                        <input type="number" id="wishPrice" placeholder="1299" />
+                        <button class="btn" id="saveWishBtn">Add to Wishlist</button>
+                        <button class="btn btn-outline" style="margin-top:8px;" id="cancelWishBtn">Cancel</button>
+                    </div>
+                </div>
+
+                <!-- ================= GOALS ================= -->
+                <div id="page-goals" class="page">
+                    <h2 style="font-size:22px;">🎯 Savings Goals</h2>
+                    <p style="color:#8a6f66;margin-bottom:16px;">Track your progress toward something big.</p>
+
+                    <div id="goalContainer">
+                        <!-- Rendered by JS -->
+                    </div>
+
+                    <div class="form-card" style="margin-top:24px;max-width:100%;">
+                        <label>Create New Goal</label>
+                        <input type="text" id="goalName" placeholder="e.g. New Laptop" />
+                        <label>Target Amount (₱)</label>
+                        <input type="number" id="goalTarget" placeholder="25000" />
+                        <button class="btn" id="addGoalBtn">+ Start Goal</button>
+                    </div>
+                </div>
+
+                <!-- ================= GIRL MATH ================= -->
+                <div id="page-girlmath" class="page">
+                    <h2 style="font-size:22px;">🎀 Girl Math Calculator</h2>
+                    <p style="color:#8a6f66;margin-bottom:16px;">Justify your purchases with ✨girl math✨.</p>
+
+                    <div class="form-card" style="max-width:100%;">
+                        <label>Item</label>
+                        <input type="text" id="gmItem" placeholder="New Shoes" />
+                        <label>Price (₱)</label>
+                        <input type="number" id="gmPrice" placeholder="1500" />
+                        <label>How many times will you wear/use it?</label>
+                        <input type="number" id="gmUses" placeholder="30" />
+                        <button class="btn" id="gmCalcBtn">✨ Calculate ✨</button>
+                    </div>
+
+                    <div id="gmResult" class="girlmath-box" style="display:none;">
+                        <div class="verdict" id="gmVerdict">APPROVED. 💅</div>
+                        <div class="detail" id="gmDetail"></div>
+                    </div>
+                </div>
+
+                <!-- ================= WRAPPED ================= -->
+                <div id="page-wrapped" class="page">
+                    <h2 style="font-size:22px;">✨ Your Financial Wrapped ✨</h2>
+                    <p style="color:#8a6f66;margin-bottom:16px;">This month's money story.</p>
+
+                    <div id="wrappedContent">
+                        <div class="stat-card" style="background:#f5ede8;border-color:#d48c7a;">
+                            <div class="label">💰 You spent this month</div>
+                            <div class="value" id="wrappedTotal">₱18,420</div>
+                        </div>
+
+                        <div class="insight-box">
+                            <h4>🍜 Top Category</h4>
+                            <p id="wrappedTopCat">Food — ₱5,200</p>
+                        </div>
+                        <div class="insight-box">
+                            <h4>📅 Most Expensive Day</h4>
+                            <p id="wrappedDay">Saturday — ₱2,840 😭</p>
+                        </div>
+                        <div class="insight-box">
+                            <h4>☕ Most Frequent Purchase</h4>
+                            <p id="wrappedFreq">Coffee — 18 times</p>
+                        </div>
+                        <div class="insight-box" style="border-left-color:#b35e4a;background:#fce8e0;">
+                            <h4>🌟 Your Financial Personality</h4>
+                            <p id="wrappedPersonality"><strong>✨ THE LITTLE TREAT GIRL ✨</strong><br />"You deserve it" was apparently your financial philosophy this month.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div><!-- /content -->
+        </div><!-- /main-grid -->
+    </div><!-- /app -->
+
+    <!-- JavaScript -->
+    <script src="script.js"></script>
+
+</body>
+</html>
