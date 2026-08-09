@@ -53,8 +53,36 @@ Multi-User Support
 - Secure login/logout
 - Data stored in localStorage
 
+Export Data 
+- CSV Export: Download your expenses as CSV for Excel
+
+- PDF Report: Generate a formatted HTML report of your spending
+
+- Export filtered data (respects your current date filter)
+
+Dark Mode 
+- Toggle between light and dark themes
+
+- Saves your preference automatically
+
+- Easy on the eyes for night owls
+
+Date Filter (NEW)
+-Filter expenses by:
+
+- All Time
+
+- This Week
+
+- This Month
+
 Reset Data
-- Clear all your data with confirmation
+-Clear all your data with confirmation dialog
+
 - Perfect for starting fresh
+
+- Includes warning to prevent accidental deletion
+
+
 
 
