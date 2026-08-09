@@ -168,20 +168,14 @@ function loginUser(username, password) {
     return false;
 }
 
-// ─── UPDATED: New users start with ZERO data ───
 function registerUser(username, password, displayName) {
     const users = getUsers();
     if (users[username]) {
-        return false; // User already exists
+        return false;
     }
     users[username] = { password, displayName: displayName || username };
     saveUsers(users);
-    
-    // Create EMPTY data for new user - NO SAMPLE DATA!
     saveUserData(username, { expenses: [], wishlist: [], goals: [] });
-    
-    // ❌ NO seedUserData() - para walang laman!
-    
     return true;
 }
 
@@ -246,7 +240,7 @@ function saveGoals(goals) {
 }
 
 // ──────────────────────────────────────────────
-// CRUD OPERATIONS
+// CRUD OPERATIONS - WITH EDIT & DELETE
 // ──────────────────────────────────────────────
 
 function addExpense(amount, category, description) {
@@ -261,6 +255,30 @@ function addExpense(amount, category, description) {
     expenses.push(expense);
     saveExpenses(expenses);
     return expense;
+}
+
+// EDIT: Update an existing expense
+function editExpense(id, amount, category, description) {
+    const expenses = getExpenses();
+    const index = expenses.findIndex(e => e.id === id);
+    if (index === -1) return false;
+    
+    expenses[index].amount = amount;
+    expenses[index].category = category;
+    expenses[index].description = description || 'Unnamed expense';
+    saveExpenses(expenses);
+    return true;
+}
+
+// DELETE: Remove a specific expense
+function deleteExpense(id) {
+    const expenses = getExpenses();
+    const index = expenses.findIndex(e => e.id === id);
+    if (index === -1) return false;
+    
+    expenses.splice(index, 1);
+    saveExpenses(expenses);
+    return true;
 }
 
 function addWishlistItem(name, price) {
@@ -324,22 +342,28 @@ function resetAllData() {
 }
 
 // ──────────────────────────────────────────────
-// UI RENDER FUNCTIONS
+// UI RENDER FUNCTIONS - FIXED DASHBOARD
 // ──────────────────────────────────────────────
 
 function renderDashboard() {
     const expenses = getExpenses();
     const weekExp = filterExpensesByDate(expenses, getWeekRange().start, getWeekRange().end);
-    const total = getTotal(weekExp);
     
-    document.getElementById('dashTotal').textContent = formatPeso(total);
+    // FIX: Show ALL expenses total, not just weekly
+    const totalAll = getTotal(expenses);
+    const totalWeek = getTotal(weekExp);
     
+    // Display total expenses on dashboard
+    document.getElementById('dashTotal').textContent = formatPeso(totalAll);
+    
+    // Show category totals for ALL time, not just week
     const cats = ['Food', 'Shopping', 'Coffee'];
     cats.forEach(c => {
         const el = document.getElementById('dash' + c);
-        if (el) el.textContent = formatPeso(getCategoryTotal(weekExp, c));
+        if (el) el.textContent = formatPeso(getCategoryTotal(expenses, c));
     });
 
+    // Week-over-week comparison still uses weekly data
     const prevWeek = filterExpensesByDate(
         expenses, 
         new Date(getWeekRange().start.getTime() - 7 * 86400000),
@@ -347,12 +371,12 @@ function renderDashboard() {
     );
     const prevTotal = getTotal(prevWeek);
     let pct = 0;
-    if (prevTotal > 0) pct = ((total - prevTotal) / prevTotal * 100);
+    if (prevTotal > 0) pct = ((totalWeek - prevTotal) / prevTotal * 100);
     
     const badge = document.getElementById('meterBadge');
     const msg = document.getElementById('meterMsg');
     
-    if (total === 0 && prevTotal === 0) {
+    if (totalWeek === 0 && prevTotal === 0) {
         badge.textContent = '✨';
         msg.textContent = 'No spending yet this week!';
     } else if (pct > 0) {
@@ -363,11 +387,12 @@ function renderDashboard() {
         msg.textContent = 'You spent less than last week! 👏';
     }
 
+    // Category bars show ALL time data
     const container = document.getElementById('barContainer');
-    const maxVal = Math.max(1, ...CATEGORIES.map(c => getCategoryTotal(weekExp, c)));
+    const maxVal = Math.max(1, ...CATEGORIES.map(c => getCategoryTotal(expenses, c)));
     let html = '';
     CATEGORIES.forEach(c => {
-        const val = getCategoryTotal(weekExp, c);
+        const val = getCategoryTotal(expenses, c);
         const pctW = (val / maxVal * 100);
         html += `
             <div class="bar-item">
@@ -380,19 +405,22 @@ function renderDashboard() {
     });
     container.innerHTML = html;
 
-    const count = weekExp.length;
-    const top = getTopCategory(weekExp, CATEGORIES);
+    // Insights show ALL time data
+    const count = expenses.length;
+    const top = getTopCategory(expenses, CATEGORIES);
     document.getElementById('insightText').innerHTML = `
-        You made <span class="em">${count}</span> purchases this week.
-        ${count > 0 ? `Your biggest category was <span class="em">${top.category}</span> — ${formatPeso(top.amount)}.` : 'Start tracking your spending!'}
-        ${count > 5 ? ' Girl… you\'ve been busy. 🛍️' : ''}
+        You have <span class="em">${count}</span> total purchases recorded.
+        ${count > 0 ? `Your biggest spending category is <span class="em">${top.category}</span> — ${formatPeso(top.amount)}.` : 'Start tracking your spending!'}
+        ${count > 10 ? ' You\'ve been tracking consistently! 🌟' : ''}
+        ${count > 20 ? ' Girl… that\'s a lot of transactions! 🛍️' : ''}
     `;
 }
 
 function renderRecent() {
     const expenses = getExpenses();
     const container = document.getElementById('recentList');
-    const recent = expenses.slice(-5).reverse();
+    // Show ALL expenses, sorted by most recent
+    const recent = [...expenses].reverse().slice(0, 10);
     
     if (recent.length === 0) {
         container.innerHTML = '<div style="color:#8a6f66;font-size:14px;">No expenses yet. Add one above! ✨</div>';
@@ -401,10 +429,27 @@ function renderRecent() {
     
     let html = '<div style="display:flex;flex-direction:column;gap:6px;margin-top:6px;">';
     recent.forEach(e => {
+        const dateDisplay = new Date(e.date).toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric',
+            year: 'numeric'
+        });
         html += `
-            <div style="display:flex;justify-content:space-between;background:#faf3ef;padding:8px 16px;border-radius:16px;font-size:14px;border:1px solid #f0e4dc;">
-                <span>${CATEGORY_ICONS[e.category] || '📦'} ${e.description}</span>
-                <span style="font-weight:700;">${formatPeso(e.amount)}</span>
+            <div style="display:flex;justify-content:space-between;align-items:center;background:#faf3ef;padding:8px 16px;border-radius:16px;font-size:14px;border:1px solid #f0e4dc;">
+                <div style="display:flex;align-items:center;gap:8px;flex:1;">
+                    <span>${CATEGORY_ICONS[e.category] || '📦'}</span>
+                    <span style="font-weight:500;">${e.description}</span>
+                    <span style="color:#8a6f66;font-size:12px;">${dateDisplay}</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span style="font-weight:700;">${formatPeso(e.amount)}</span>
+                    <button onclick="editExpenseUI(${e.id})" style="background:#ede3db;border:none;padding:2px 10px;border-radius:12px;cursor:pointer;font-size:12px;">
+                        ✏️
+                    </button>
+                    <button onclick="deleteExpenseUI(${e.id})" style="background:#ffebee;border:none;padding:2px 10px;border-radius:12px;cursor:pointer;font-size:12px;color:#c62828;">
+                        🗑️
+                    </button>
+                </div>
             </div>
         `;
     });
@@ -414,24 +459,27 @@ function renderRecent() {
 
 function renderInvestigate() {
     const expenses = getExpenses();
-    const weekExp = filterExpensesByDate(expenses, getWeekRange().start, getWeekRange().end);
-    const count = weekExp.length;
-    const top = getTopCategory(weekExp, CATEGORIES);
+    const monthExp = filterExpensesByDate(expenses, getMonthRange().start, getMonthRange().end);
+    
+    // Show monthly data for investigate
+    const count = monthExp.length;
+    const top = getTopCategory(monthExp, CATEGORIES);
 
     document.getElementById('investText').innerHTML = `
-        You made <span class="em">${count}</span> purchases this week.
+        You made <span class="em">${count}</span> purchases this month.
         ${count > 0 ? `Your biggest spending category was <span class="em">${top.category}</span>.` : 'Add some expenses to investigate!'}
         ${count > 0 && top.category === 'Food' ? ' Girl… you ate your budget. 🍜😭' : ''}
+        ${count > 0 && top.category === 'Shopping' ? ' "Add to cart" era is real! 💀' : ''}
     `;
 
-    const shopTotal = getCategoryTotal(weekExp, 'Shopping');
-    const shopCount = getCategoryCount(weekExp, 'Shopping');
+    const shopTotal = getCategoryTotal(monthExp, 'Shopping');
+    const shopCount = getCategoryCount(monthExp, 'Shopping');
     document.getElementById('investShop').textContent = shopTotal > 0 ?
-        `You spent ${formatPeso(shopTotal)} on shopping. ${shopCount > 2 ? 'You were in your "add to cart" era. 💀' : 'Not too bad!'}` :
+        `You spent ${formatPeso(shopTotal)} on shopping this month. ${shopCount > 3 ? 'You were in your "add to cart" era. 💀' : 'Not too bad!'}` :
         'No shopping data yet.';
 
-    const coffeeTotal = getCategoryTotal(weekExp, 'Coffee');
-    const coffeeCount = getCategoryCount(weekExp, 'Coffee');
+    const coffeeTotal = getCategoryTotal(monthExp, 'Coffee');
+    const coffeeCount = getCategoryCount(monthExp, 'Coffee');
     document.getElementById('investCoffee').textContent = coffeeTotal > 0 ?
         `You bought coffee ${coffeeCount} times this month. Estimated total: ${formatPeso(coffeeTotal)}. That's approximately ₱${Math.round(coffeeTotal / Math.max(1, coffeeCount))}/day.` :
         'No coffee data yet.';
@@ -540,6 +588,141 @@ function renderAll() {
 }
 
 // ──────────────────────────────────────────────
+// EDIT/DELETE UI FUNCTIONS
+// ──────────────────────────────────────────────
+
+// Show modal for editing
+function showEditModal(expense) {
+    // Remove existing modal if any
+    const existingModal = document.getElementById('editModal');
+    if (existingModal) existingModal.remove();
+    
+    const modal = document.createElement('div');
+    modal.id = 'editModal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        backdrop-filter: blur(4px);
+    `;
+    
+    modal.innerHTML = `
+        <div style="
+            background: white;
+            border-radius: 24px;
+            padding: 32px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            position: relative;
+        ">
+            <h3 style="margin-top:0;color:#5a3f3a;">✏️ Edit Expense</h3>
+            
+            <div style="margin-bottom:16px;">
+                <label style="display:block;font-size:14px;color:#7a5f5a;margin-bottom:4px;">Description</label>
+                <input id="editDesc" type="text" value="${expense.description}" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box;">
+            </div>
+            
+            <div style="margin-bottom:16px;">
+                <label style="display:block;font-size:14px;color:#7a5f5a;margin-bottom:4px;">Amount (₱)</label>
+                <input id="editAmount" type="number" step="0.01" value="${expense.amount}" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box;">
+            </div>
+            
+            <div style="margin-bottom:20px;">
+                <label style="display:block;font-size:14px;color:#7a5f5a;margin-bottom:4px;">Category</label>
+                <select id="editCategory" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box;">
+                    ${CATEGORIES.map(c => `
+                        <option value="${c}" ${c === expense.category ? 'selected' : ''}>
+                            ${CATEGORY_ICONS[c] || '📦'} ${c}
+                        </option>
+                    `).join('')}
+                </select>
+            </div>
+            
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+                <button onclick="closeEditModal()" style="background:#ede3db;border:none;padding:8px 20px;border-radius:20px;cursor:pointer;font-weight:600;font-size:14px;">
+                    Cancel
+                </button>
+                <button onclick="saveEditExpense(${expense.id})" style="background:#5a3f3a;color:white;border:none;padding:8px 20px;border-radius:20px;cursor:pointer;font-weight:600;font-size:14px;">
+                    Save Changes 💾
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Close modal when clicking outside
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) closeEditModal();
+    });
+}
+
+function closeEditModal() {
+    const modal = document.getElementById('editModal');
+    if (modal) modal.remove();
+}
+
+window.editExpenseUI = function(id) {
+    const expenses = getExpenses();
+    const expense = expenses.find(e => e.id === id);
+    if (!expense) {
+        alert('Expense not found!');
+        return;
+    }
+    showEditModal(expense);
+};
+
+window.saveEditExpense = function(id) {
+    const desc = document.getElementById('editDesc').value.trim();
+    const amount = parseFloat(document.getElementById('editAmount').value);
+    const category = document.getElementById('editCategory').value;
+    
+    if (!amount || amount <= 0) {
+        alert('Please enter a valid amount.');
+        return;
+    }
+    
+    if (!desc) {
+        alert('Please enter a description.');
+        return;
+    }
+    
+    if (editExpense(id, amount, category, desc)) {
+        closeEditModal();
+        renderAll();
+        alert('✅ Expense updated successfully!');
+    } else {
+        alert('❌ Error updating expense.');
+    }
+};
+
+window.deleteExpenseUI = function(id) {
+    const expenses = getExpenses();
+    const expense = expenses.find(e => e.id === id);
+    if (!expense) return;
+    
+    if (confirm(
+        `🗑️ Delete this expense?\n\n` +
+        `${CATEGORY_ICONS[expense.category] || '📦'} ${expense.description}\n` +
+        `${formatPeso(expense.amount)}\n\n` +
+        `This cannot be undone!`
+    )) {
+        if (deleteExpense(id)) {
+            renderAll();
+            alert('🗑️ Expense deleted.');
+        }
+    }
+};
+
+// ──────────────────────────────────────────────
 // APP NAVIGATION
 // ──────────────────────────────────────────────
 
@@ -547,7 +730,6 @@ function showApp() {
     document.getElementById('landingPage').style.display = 'none';
     document.getElementById('app').style.display = 'flex';
     
-    // Update user info
     const users = getUsers();
     const userInfo = users[currentUser];
     document.getElementById('userDisplayName').textContent = userInfo.displayName || currentUser;
@@ -601,7 +783,7 @@ document.getElementById('loginBtn').addEventListener('click', function() {
     }
 });
 
-// Register - UPDATED with better messaging
+// Register
 document.getElementById('registerBtn').addEventListener('click', function() {
     const username = document.getElementById('registerUsername').value.trim();
     const password = document.getElementById('registerPassword').value.trim();
@@ -757,7 +939,7 @@ document.getElementById('gmCalcBtn').addEventListener('click', function() {
         perUse < 100 ? 'APPROVED. 💅' : 'Hmm... think about it. 🤔';
 });
 
-// Enter key support for login/register
+// Enter key support
 document.getElementById('loginPassword').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') document.getElementById('loginBtn').click();
 });
@@ -766,16 +948,29 @@ document.getElementById('registerPassword').addEventListener('keypress', functio
     if (e.key === 'Enter') document.getElementById('registerBtn').click();
 });
 
+// Keyboard shortcuts for edit modal
+document.addEventListener('keydown', function(e) {
+    const modal = document.getElementById('editModal');
+    if (modal) {
+        if (e.key === 'Escape') closeEditModal();
+        if (e.key === 'Enter') {
+            const saveBtn = modal.querySelector('[onclick^="saveEditExpense"]');
+            if (saveBtn) saveBtn.click();
+        }
+    }
+});
+
 // ──────────────────────────────────────────────
 // INIT
 // ──────────────────────────────────────────────
 
-// Check if user is already logged in
 if (checkLoggedInUser()) {
     showApp();
 } else {
     showLanding();
 }
 
-console.log('🎀 Where Did My Money Go? is ready with multi-user support!');
+console.log('🎀 Where Did My Money Go? is ready!');
+console.log('✅ Dashboard shows ALL expenses');
+console.log('✅ Edit and Delete buttons added');
 console.log('💡 New users start with ZERO expenses!');
