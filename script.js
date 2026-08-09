@@ -31,11 +31,11 @@ function filterExpensesByDate(expenses, start, end) {
 }
 
 function getTotal(expenses) {
-    return expenses.reduce((sum, e) => sum + e.amount, 0);
+    return expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
 }
 
 function getCategoryTotal(expenses, category) {
-    return expenses.filter(e => e.category === category).reduce((sum, e) => sum + e.amount, 0);
+    return expenses.filter(e => e.category === category).reduce((sum, e) => sum + (e.amount || 0), 0);
 }
 
 function getCategoryCount(expenses, category) {
@@ -240,44 +240,52 @@ function saveGoals(goals) {
 }
 
 // ──────────────────────────────────────────────
-// CRUD OPERATIONS - WITH EDIT & DELETE
+// CRUD OPERATIONS - WITH EDIT & DELETE & FIXES
 // ──────────────────────────────────────────────
 
 function addExpense(amount, category, description) {
     const expenses = getExpenses();
     const expense = {
         id: Date.now() + Math.random() * 1000,
-        amount: amount,
-        category: category,
+        amount: parseFloat(amount),
+        category: category.trim(),
         description: description || 'Unnamed expense',
         date: new Date().toISOString()
     };
+    
+    console.log('➕ Adding expense:', expense);
     expenses.push(expense);
     saveExpenses(expenses);
+    
+    const saved = getExpenses();
+    console.log('💾 Saved expenses:', saved.length);
+    console.log('🛍️ Shopping total:', formatPeso(getCategoryTotal(saved, 'Shopping')));
+    
     return expense;
 }
 
-// EDIT: Update an existing expense
 function editExpense(id, amount, category, description) {
     const expenses = getExpenses();
     const index = expenses.findIndex(e => e.id === id);
     if (index === -1) return false;
     
-    expenses[index].amount = amount;
-    expenses[index].category = category;
+    expenses[index].amount = parseFloat(amount);
+    expenses[index].category = category.trim();
     expenses[index].description = description || 'Unnamed expense';
     saveExpenses(expenses);
+    console.log('✏️ Expense edited:', expenses[index]);
     return true;
 }
 
-// DELETE: Remove a specific expense
 function deleteExpense(id) {
     const expenses = getExpenses();
     const index = expenses.findIndex(e => e.id === id);
     if (index === -1) return false;
     
+    const deleted = expenses[index];
     expenses.splice(index, 1);
     saveExpenses(expenses);
+    console.log('🗑️ Expense deleted:', deleted);
     return true;
 }
 
@@ -347,23 +355,34 @@ function resetAllData() {
 
 function renderDashboard() {
     const expenses = getExpenses();
+    console.log('📊 Rendering dashboard with', expenses.length, 'expenses');
+    
+    // Log all categories with data
+    CATEGORIES.forEach(c => {
+        const total = getCategoryTotal(expenses, c);
+        if (total > 0) {
+            console.log(`📊 ${c}: ${formatPeso(total)}`);
+        }
+    });
+    
     const weekExp = filterExpensesByDate(expenses, getWeekRange().start, getWeekRange().end);
     
-    // FIX: Show ALL expenses total, not just weekly
+    // Show ALL expenses total
     const totalAll = getTotal(expenses);
-    const totalWeek = getTotal(weekExp);
-    
-    // Display total expenses on dashboard
     document.getElementById('dashTotal').textContent = formatPeso(totalAll);
     
-    // Show category totals for ALL time, not just week
+    // Show category totals for ALL time
     const cats = ['Food', 'Shopping', 'Coffee'];
     cats.forEach(c => {
         const el = document.getElementById('dash' + c);
-        if (el) el.textContent = formatPeso(getCategoryTotal(expenses, c));
+        if (el) {
+            const total = getCategoryTotal(expenses, c);
+            el.textContent = formatPeso(total);
+        }
     });
 
-    // Week-over-week comparison still uses weekly data
+    // Week-over-week comparison
+    const totalWeek = getTotal(weekExp);
     const prevWeek = filterExpensesByDate(
         expenses, 
         new Date(getWeekRange().start.getTime() - 7 * 86400000),
@@ -419,7 +438,6 @@ function renderDashboard() {
 function renderRecent() {
     const expenses = getExpenses();
     const container = document.getElementById('recentList');
-    // Show ALL expenses, sorted by most recent
     const recent = [...expenses].reverse().slice(0, 10);
     
     if (recent.length === 0) {
@@ -461,7 +479,6 @@ function renderInvestigate() {
     const expenses = getExpenses();
     const monthExp = filterExpensesByDate(expenses, getMonthRange().start, getMonthRange().end);
     
-    // Show monthly data for investigate
     const count = monthExp.length;
     const top = getTopCategory(monthExp, CATEGORIES);
 
@@ -591,9 +608,7 @@ function renderAll() {
 // EDIT/DELETE UI FUNCTIONS
 // ──────────────────────────────────────────────
 
-// Show modal for editing
 function showEditModal(expense) {
-    // Remove existing modal if any
     const existingModal = document.getElementById('editModal');
     if (existingModal) existingModal.remove();
     
@@ -659,7 +674,6 @@ function showEditModal(expense) {
     
     document.body.appendChild(modal);
     
-    // Close modal when clicking outside
     modal.addEventListener('click', function(e) {
         if (e.target === modal) closeEditModal();
     });
@@ -721,6 +735,28 @@ window.deleteExpenseUI = function(id) {
         }
     }
 };
+
+// ──────────────────────────────────────────────
+// HELPER: DEBUG DATA
+// ──────────────────────────────────────────────
+
+function debugData() {
+    console.log('🔍 === DEBUG DATA ===');
+    const expenses = getExpenses();
+    console.log('Total expenses:', expenses.length);
+    expenses.forEach((e, i) => {
+        console.log(`  ${i+1}. ${e.category}: ${formatPeso(e.amount)} - ${e.description} (${e.date})`);
+    });
+    console.log('🔍 === CATEGORY TOTALS ===');
+    CATEGORIES.forEach(c => {
+        console.log(`  ${c}: ${formatPeso(getCategoryTotal(expenses, c))}`);
+    });
+    console.log('🔍 === RAW DATA ===');
+    console.log(expenses);
+    return expenses;
+}
+
+window.debug = debugData;
 
 // ──────────────────────────────────────────────
 // APP NAVIGATION
@@ -836,7 +872,7 @@ document.getElementById('logoutBtn').addEventListener('click', function() {
     document.getElementById('registerForm').style.display = 'none';
 });
 
-// Add Expense
+// Add Expense - FIXED
 document.getElementById('addBtn').addEventListener('click', function() {
     const amount = parseFloat(document.getElementById('addAmount').value);
     if (!amount || amount <= 0) {
@@ -852,13 +888,20 @@ document.getElementById('addBtn').addEventListener('click', function() {
     
     const desc = document.getElementById('addDesc').value.trim() || 'Unnamed expense';
     
+    console.log('🔄 Adding expense:', { amount, category: category.value, description: desc });
+    
     addExpense(amount, category.value, desc);
     
     document.getElementById('addAmount').value = '';
     document.getElementById('addDesc').value = '';
     
     renderAll();
-    alert('✨ Expense added!');
+    
+    const allExpenses = getExpenses();
+    console.log('📊 Total expenses:', allExpenses.length);
+    console.log('📊 Shopping total:', formatPeso(getCategoryTotal(allExpenses, 'Shopping')));
+    
+    alert(`✨ ${formatPeso(amount)} added to ${category.value}!`);
 });
 
 // Wishlist
@@ -973,4 +1016,5 @@ if (checkLoggedInUser()) {
 console.log('🎀 Where Did My Money Go? is ready!');
 console.log('✅ Dashboard shows ALL expenses');
 console.log('✅ Edit and Delete buttons added');
+console.log('✅ Debug: type debug() in console');
 console.log('💡 New users start with ZERO expenses!');
