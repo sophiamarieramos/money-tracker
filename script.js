@@ -429,7 +429,7 @@ function saveGoals(goals) {
 }
 
 // ──────────────────────────────────────────────
-// CRUD OPERATIONS
+// CRUD OPERATIONS - WITH DEBUG
 // ──────────────────────────────────────────────
 
 function addExpense(amount, category, description) {
@@ -441,8 +441,28 @@ function addExpense(amount, category, description) {
         description: description || 'Unnamed expense',
         date: new Date().toISOString()
     };
+    
+    // DEBUG: Log what we're adding
+    console.log('➕ ADDING EXPENSE:', expense);
+    console.log('📂 CATEGORY:', category);
+    console.log('💰 AMOUNT:', amount);
+    
     expenses.push(expense);
     saveExpenses(expenses);
+    
+    // DEBUG: Verify save
+    const saved = getExpenses();
+    console.log('💾 SAVED EXPENSES COUNT:', saved.length);
+    console.log('🛍️ SHOPPING TOTAL:', formatPeso(getCategoryTotal(saved, 'Shopping')));
+    console.log('📊 ALL CATEGORY TOTALS:');
+    CATEGORIES.forEach(c => {
+        const total = getCategoryTotal(saved, c);
+        if (total > 0) {
+            console.log(`   ${c}: ${formatPeso(total)}`);
+        }
+    });
+    console.log('📋 ALL EXPENSES:', saved);
+    
     return expense;
 }
 
@@ -529,7 +549,7 @@ function resetAllData() {
 }
 
 // ──────────────────────────────────────────────
-// UI RENDER FUNCTIONS
+// UI RENDER FUNCTIONS - FIXED
 // ──────────────────────────────────────────────
 
 function renderDashboard() {
@@ -537,14 +557,22 @@ function renderDashboard() {
     const allExpenses = getExpenses();
     const weekExp = filterExpensesByDate(allExpenses, getWeekRange().start, getWeekRange().end);
     
-    const totalAll = getTotal(expenses);
-    document.getElementById('dashTotal').textContent = formatPeso(totalAll);
+    // DEBUG: Log all expenses
+    console.log('📊 RENDER DASHBOARD - Filtered expenses:', expenses);
+    console.log('📊 RENDER DASHBOARD - All expenses:', allExpenses);
     
+    const totalAll = getTotal(expenses);
+    const dashTotal = document.getElementById('dashTotal');
+    if (dashTotal) dashTotal.textContent = formatPeso(totalAll);
+    
+    // FIX: Use filtered expenses for category totals
     const cats = ['Food', 'Shopping', 'Coffee'];
     cats.forEach(c => {
         const el = document.getElementById('dash' + c);
         if (el) {
-            el.textContent = formatPeso(getCategoryTotal(expenses, c));
+            const total = getCategoryTotal(expenses, c);
+            el.textContent = formatPeso(total);
+            console.log(`📊 ${c} card total: ${formatPeso(total)}`);
         }
     });
 
@@ -562,47 +590,54 @@ function renderDashboard() {
     const msg = document.getElementById('meterMsg');
     
     if (totalWeek === 0 && prevTotal === 0) {
-        badge.textContent = '✨';
-        msg.textContent = 'No spending yet this week!';
+        if (badge) badge.textContent = '✨';
+        if (msg) msg.textContent = 'No spending yet this week!';
     } else if (pct > 0) {
-        badge.textContent = '+' + Math.round(pct) + '%';
-        msg.textContent = 'Your spending increased compared to last week. 😭';
+        if (badge) badge.textContent = '+' + Math.round(pct) + '%';
+        if (msg) msg.textContent = 'Your spending increased compared to last week. 😭';
     } else {
-        badge.textContent = Math.round(pct) + '%';
-        msg.textContent = 'You spent less than last week! 👏';
+        if (badge) badge.textContent = Math.round(pct) + '%';
+        if (msg) msg.textContent = 'You spent less than last week! 👏';
     }
 
     const container = document.getElementById('barContainer');
-    const maxVal = Math.max(1, ...CATEGORIES.map(c => getCategoryTotal(expenses, c)));
-    let html = '';
-    CATEGORIES.forEach(c => {
-        const val = getCategoryTotal(expenses, c);
-        const pctW = (val / maxVal * 100);
-        html += `
-            <div class="bar-item">
-                <span class="cat-icon">${CATEGORY_ICONS[c] || '📦'}</span>
-                <span class="cat-name">${c}</span>
-                <div class="bar-track"><div class="bar-fill" style="width:${pctW}%;"></div></div>
-                <span class="bar-amount">${formatPeso(val)}</span>
-            </div>
-        `;
-    });
-    container.innerHTML = html;
+    if (container) {
+        const maxVal = Math.max(1, ...CATEGORIES.map(c => getCategoryTotal(expenses, c)));
+        let html = '';
+        CATEGORIES.forEach(c => {
+            const val = getCategoryTotal(expenses, c);
+            const pctW = (val / maxVal * 100);
+            html += `
+                <div class="bar-item">
+                    <span class="cat-icon">${CATEGORY_ICONS[c] || '📦'}</span>
+                    <span class="cat-name">${c}</span>
+                    <div class="bar-track"><div class="bar-fill" style="width:${pctW}%;"></div></div>
+                    <span class="bar-amount">${formatPeso(val)}</span>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
 
     const count = expenses.length;
     const top = getTopCategory(expenses, CATEGORIES);
-    document.getElementById('insightText').innerHTML = `
-        You have <span class="em">${count}</span> purchases in this period.
-        ${count > 0 ? `Your biggest spending category is <span class="em">${top.category}</span> — ${formatPeso(top.amount)}.` : 'Start tracking your spending!'}
-        ${count > 10 ? ' You\'ve been tracking consistently! 🌟' : ''}
-        ${count > 20 ? ' Girl… that\'s a lot of transactions! 🛍️' : ''}
-    `;
+    const insightText = document.getElementById('insightText');
+    if (insightText) {
+        insightText.innerHTML = `
+            You have <span class="em">${count}</span> purchases in this period.
+            ${count > 0 ? `Your biggest spending category is <span class="em">${top.category}</span> — ${formatPeso(top.amount)}.` : 'Start tracking your spending!'}
+            ${count > 10 ? ' You\'ve been tracking consistently! 🌟' : ''}
+            ${count > 20 ? ' Girl… that\'s a lot of transactions! 🛍️' : ''}
+        `;
+    }
 }
 
 function renderRecent() {
     const expenses = getFilteredExpenses();
     const container = document.getElementById('recentList');
     const recent = [...expenses].reverse().slice(0, 10);
+    
+    if (!container) return;
     
     if (recent.length === 0) {
         container.innerHTML = '<div style="color:#8a6f66;font-size:14px;">No expenses in this period. Add one above! ✨</div>';
@@ -645,29 +680,40 @@ function renderInvestigate() {
     const count = expenses.length;
     const top = getTopCategory(expenses, CATEGORIES);
 
-    document.getElementById('investText').innerHTML = `
-        You made <span class="em">${count}</span> purchases in this period.
-        ${count > 0 ? `Your biggest spending category was <span class="em">${top.category}</span>.` : 'Add some expenses to investigate!'}
-        ${count > 0 && top.category === 'Food' ? ' Girl… you ate your budget. 🍜😭' : ''}
-        ${count > 0 && top.category === 'Shopping' ? ' "Add to cart" era is real! 💀' : ''}
-    `;
+    const investText = document.getElementById('investText');
+    if (investText) {
+        investText.innerHTML = `
+            You made <span class="em">${count}</span> purchases in this period.
+            ${count > 0 ? `Your biggest spending category was <span class="em">${top.category}</span>.` : 'Add some expenses to investigate!'}
+            ${count > 0 && top.category === 'Food' ? ' Girl… you ate your budget. 🍜😭' : ''}
+            ${count > 0 && top.category === 'Shopping' ? ' "Add to cart" era is real! 💀' : ''}
+        `;
+    }
 
     const shopTotal = getCategoryTotal(expenses, 'Shopping');
     const shopCount = getCategoryCount(expenses, 'Shopping');
-    document.getElementById('investShop').textContent = shopTotal > 0 ?
-        `You spent ${formatPeso(shopTotal)} on shopping. ${shopCount > 3 ? 'You were in your "add to cart" era. 💀' : 'Not too bad!'}` :
-        'No shopping data yet.';
+    const investShop = document.getElementById('investShop');
+    if (investShop) {
+        investShop.textContent = shopTotal > 0 ?
+            `You spent ${formatPeso(shopTotal)} on shopping. ${shopCount > 3 ? 'You were in your "add to cart" era. 💀' : 'Not too bad!'}` :
+            'No shopping data yet.';
+    }
 
     const coffeeTotal = getCategoryTotal(expenses, 'Coffee');
     const coffeeCount = getCategoryCount(expenses, 'Coffee');
-    document.getElementById('investCoffee').textContent = coffeeTotal > 0 ?
-        `You bought coffee ${coffeeCount} times. Estimated total: ${formatPeso(coffeeTotal)}. That's approximately ₱${Math.round(coffeeTotal / Math.max(1, coffeeCount))}/day.` :
-        'No coffee data yet.';
+    const investCoffee = document.getElementById('investCoffee');
+    if (investCoffee) {
+        investCoffee.textContent = coffeeTotal > 0 ?
+            `You bought coffee ${coffeeCount} times. Estimated total: ${formatPeso(coffeeTotal)}. That's approximately ₱${Math.round(coffeeTotal / Math.max(1, coffeeCount))}/day.` :
+            'No coffee data yet.';
+    }
 }
 
 function renderWishlist() {
     const grid = document.getElementById('wishlistGrid');
     const items = getWishlist();
+    
+    if (!grid) return;
     
     if (items.length === 0) {
         grid.innerHTML = '<div style="color:#8a6f66;font-size:14px;padding:20px 0;">Your wishlist is empty. Start dreaming! 🛍️</div>';
@@ -694,6 +740,8 @@ function renderWishlist() {
 function renderGoals() {
     const container = document.getElementById('goalContainer');
     const items = getGoals();
+    
+    if (!container) return;
     
     if (items.length === 0) {
         container.innerHTML = '<div style="color:#8a6f66;font-size:14px;padding:20px 0;">No goals yet. Start saving! 🎯</div>';
@@ -738,23 +786,32 @@ function renderWrapped() {
     const monthExp = filterExpensesByDate(expenses, getMonthRange().start, getMonthRange().end);
     const total = getTotal(monthExp);
     
-    document.getElementById('wrappedTotal').textContent = formatPeso(total || 0);
+    const wrappedTotal = document.getElementById('wrappedTotal');
+    if (wrappedTotal) wrappedTotal.textContent = formatPeso(total || 0);
 
     const top = getTopCategory(monthExp, CATEGORIES);
-    document.getElementById('wrappedTopCat').textContent = 
-        top.amount > 0 ? `${top.category} — ${formatPeso(top.amount)}` : 'No data yet';
+    const wrappedTopCat = document.getElementById('wrappedTopCat');
+    if (wrappedTopCat) {
+        wrappedTopCat.textContent = top.amount > 0 ? `${top.category} — ${formatPeso(top.amount)}` : 'No data yet';
+    }
 
     const dayData = getMostExpensiveDay(monthExp);
-    document.getElementById('wrappedDay').textContent = 
-        dayData.amount > 0 ? `${dayData.day} — ${formatPeso(dayData.amount)} 😭` : 'No data yet';
+    const wrappedDay = document.getElementById('wrappedDay');
+    if (wrappedDay) {
+        wrappedDay.textContent = dayData.amount > 0 ? `${dayData.day} — ${formatPeso(dayData.amount)} 😭` : 'No data yet';
+    }
 
     const freq = getMostFrequentCategory(monthExp);
-    document.getElementById('wrappedFreq').textContent = 
-        freq.count > 0 ? `${freq.category} — ${freq.count} times` : 'No data yet';
+    const wrappedFreq = document.getElementById('wrappedFreq');
+    if (wrappedFreq) {
+        wrappedFreq.textContent = freq.count > 0 ? `${freq.category} — ${freq.count} times` : 'No data yet';
+    }
 
     const personality = getFinancialPersonality(monthExp, total, top);
-    document.getElementById('wrappedPersonality').innerHTML = 
-        `<strong>${personality.name}</strong><br />${personality.desc}`;
+    const wrappedPersonality = document.getElementById('wrappedPersonality');
+    if (wrappedPersonality) {
+        wrappedPersonality.innerHTML = `<strong>${personality.name}</strong><br />${personality.desc}`;
+    }
 }
 
 function renderAll() {
@@ -858,21 +915,30 @@ window.editExpenseUI = function(id) {
 };
 
 window.saveEditExpense = function(id) {
-    const desc = document.getElementById('editDesc').value.trim();
-    const amount = parseFloat(document.getElementById('editAmount').value);
-    const category = document.getElementById('editCategory').value;
+    const desc = document.getElementById('editDesc');
+    const amount = document.getElementById('editAmount');
+    const category = document.getElementById('editCategory');
     
-    if (!amount || amount <= 0) {
+    if (!desc || !amount || !category) {
+        alert('Error: Could not find form fields.');
+        return;
+    }
+    
+    const descVal = desc.value.trim();
+    const amountVal = parseFloat(amount.value);
+    const categoryVal = category.value;
+    
+    if (!amountVal || amountVal <= 0) {
         alert('Please enter a valid amount.');
         return;
     }
     
-    if (!desc) {
+    if (!descVal) {
         alert('Please enter a description.');
         return;
     }
     
-    if (editExpense(id, amount, category, desc)) {
+    if (editExpense(id, amountVal, categoryVal, descVal)) {
         closeEditModal();
         renderAll();
         alert('✅ Expense updated successfully!');
@@ -904,30 +970,77 @@ window.deleteExpenseUI = function(id) {
 // ──────────────────────────────────────────────
 
 function showApp() {
-    document.getElementById('landingPage').style.display = 'none';
-    document.getElementById('app').style.display = 'flex';
+    const landingPage = document.getElementById('landingPage');
+    const app = document.getElementById('app');
+    if (landingPage) landingPage.style.display = 'none';
+    if (app) app.style.display = 'flex';
     
     const users = getUsers();
     const userInfo = users[currentUser];
-    document.getElementById('userDisplayName').textContent = userInfo.displayName || currentUser;
-    document.getElementById('userAvatar').textContent = (userInfo.displayName || currentUser)[0].toUpperCase();
+    const displayName = document.getElementById('userDisplayName');
+    const avatar = document.getElementById('userAvatar');
+    if (displayName) displayName.textContent = userInfo.displayName || currentUser;
+    if (avatar) avatar.textContent = (userInfo.displayName || currentUser)[0].toUpperCase();
     
     applyDarkMode();
     renderAll();
 }
 
 function showLanding() {
-    document.getElementById('landingPage').style.display = 'flex';
-    document.getElementById('app').style.display = 'none';
+    const landingPage = document.getElementById('landingPage');
+    const app = document.getElementById('app');
+    if (landingPage) landingPage.style.display = 'flex';
+    if (app) app.style.display = 'none';
 }
 
 // ──────────────────────────────────────────────
-// EVENT LISTENERS - FIXED
+// MOBILE HAMBURGER MENU
+// ──────────────────────────────────────────────
+
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    if (sidebar) sidebar.classList.toggle('open');
+    if (overlay) overlay.classList.toggle('active');
+    document.body.style.overflow = sidebar?.classList.contains('open') ? 'hidden' : '';
+}
+
+function closeSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    if (sidebar) sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+// ──────────────────────────────────────────────
+// EVENT LISTENERS - FIXED WITH DEBUG
 // ──────────────────────────────────────────────
 
 // Wait for DOM to be ready
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🎀 App initializing...');
     
+    // Hamburger menu
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    if (hamburgerBtn) {
+        hamburgerBtn.addEventListener('click', toggleSidebar);
+    }
+
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+    if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', closeSidebar);
+    }
+
+    // Close sidebar when clicking a link (mobile)
+    document.querySelectorAll('.sidebar a, .sidebar .export-btn, .sidebar .reset-link').forEach(el => {
+        el.addEventListener('click', function() {
+            if (window.innerWidth <= 820) {
+                closeSidebar();
+            }
+        });
+    });
+
     // Navigation
     document.querySelectorAll('.sidebar a[data-page]').forEach(link => {
         link.addEventListener('click', function(e) {
@@ -979,15 +1092,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const loginBtn = document.getElementById('loginBtn');
     if (loginBtn) {
         loginBtn.addEventListener('click', function() {
-            const username = document.getElementById('loginUsername').value.trim();
-            const password = document.getElementById('loginPassword').value.trim();
+            const username = document.getElementById('loginUsername');
+            const password = document.getElementById('loginPassword');
             
             if (!username || !password) {
                 alert('Please enter both username and password.');
                 return;
             }
             
-            if (loginUser(username, password)) {
+            const userVal = username.value.trim();
+            const passVal = password.value.trim();
+            
+            if (!userVal || !passVal) {
+                alert('Please enter both username and password.');
+                return;
+            }
+            
+            if (loginUser(userVal, passVal)) {
                 showApp();
             } else {
                 alert('❌ Invalid username or password!');
@@ -999,31 +1120,44 @@ document.addEventListener('DOMContentLoaded', function() {
     const registerBtn = document.getElementById('registerBtn');
     if (registerBtn) {
         registerBtn.addEventListener('click', function() {
-            const username = document.getElementById('registerUsername').value.trim();
-            const password = document.getElementById('registerPassword').value.trim();
-            const displayName = document.getElementById('registerDisplayName').value.trim() || username;
+            const username = document.getElementById('registerUsername');
+            const password = document.getElementById('registerPassword');
+            const displayName = document.getElementById('registerDisplayName');
             
             if (!username || !password) {
                 alert('Please enter both username and password.');
                 return;
             }
             
-            if (username.length < 3) {
+            const userVal = username.value.trim();
+            const passVal = password.value.trim();
+            const displayVal = displayName ? displayName.value.trim() : userVal;
+            
+            if (!userVal || !passVal) {
+                alert('Please enter both username and password.');
+                return;
+            }
+            
+            if (userVal.length < 3) {
                 alert('Username must be at least 3 characters long.');
                 return;
             }
             
-            if (password.length < 4) {
+            if (passVal.length < 4) {
                 alert('Password must be at least 4 characters long.');
                 return;
             }
             
-            if (registerUser(username, password, displayName)) {
+            if (registerUser(userVal, passVal, displayVal)) {
                 alert('✨ Account created successfully! You can now log in with ZERO expenses to start fresh! 🎀');
-                document.getElementById('registerForm').style.display = 'none';
-                document.getElementById('loginForm').style.display = 'block';
-                document.getElementById('loginUsername').value = username;
-                document.getElementById('loginPassword').value = '';
+                const registerForm = document.getElementById('registerForm');
+                const loginForm = document.getElementById('loginForm');
+                const loginUsername = document.getElementById('loginUsername');
+                const loginPassword = document.getElementById('loginPassword');
+                if (registerForm) registerForm.style.display = 'none';
+                if (loginForm) loginForm.style.display = 'block';
+                if (loginUsername) loginUsername.value = userVal;
+                if (loginPassword) loginPassword.value = '';
             } else {
                 alert('❌ Username already exists! Please choose another one.');
             }
@@ -1035,8 +1169,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (showRegister) {
         showRegister.addEventListener('click', function(e) {
             e.preventDefault();
-            document.getElementById('loginForm').style.display = 'none';
-            document.getElementById('registerForm').style.display = 'block';
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            if (loginForm) loginForm.style.display = 'none';
+            if (registerForm) registerForm.style.display = 'block';
         });
     }
 
@@ -1044,8 +1180,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (showLogin) {
         showLogin.addEventListener('click', function(e) {
             e.preventDefault();
-            document.getElementById('registerForm').style.display = 'none';
-            document.getElementById('loginForm').style.display = 'block';
+            const registerForm = document.getElementById('registerForm');
+            const loginForm = document.getElementById('loginForm');
+            if (registerForm) registerForm.style.display = 'none';
+            if (loginForm) loginForm.style.display = 'block';
         });
     }
 
@@ -1055,36 +1193,61 @@ document.addEventListener('DOMContentLoaded', function() {
         logoutBtn.addEventListener('click', function() {
             logoutUser();
             showLanding();
-            document.getElementById('loginForm').style.display = 'block';
-            document.getElementById('registerForm').style.display = 'none';
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            if (loginForm) loginForm.style.display = 'block';
+            if (registerForm) registerForm.style.display = 'none';
         });
     }
 
-    // Add Expense
+    // Add Expense - FIXED WITH DEBUG
     const addBtn = document.getElementById('addBtn');
     if (addBtn) {
         addBtn.addEventListener('click', function() {
-            const amount = parseFloat(document.getElementById('addAmount').value);
+            const amountInput = document.getElementById('addAmount');
+            const categoryInput = document.querySelector('input[name="cat"]:checked');
+            const descInput = document.getElementById('addDesc');
+            
+            if (!amountInput) {
+                alert('Error: Amount input not found.');
+                return;
+            }
+            
+            const amount = parseFloat(amountInput.value);
             if (!amount || amount <= 0) {
                 alert('Please enter a valid amount.');
                 return;
             }
             
-            const category = document.querySelector('input[name="cat"]:checked');
-            if (!category) {
+            if (!categoryInput) {
                 alert('Please select a category.');
                 return;
             }
             
-            const desc = document.getElementById('addDesc').value.trim() || 'Unnamed expense';
+            const desc = descInput ? descInput.value.trim() : 'Unnamed expense';
+            const category = categoryInput.value;
             
-            addExpense(amount, category.value, desc);
+            console.log('🔄 ADDING EXPENSE - Category:', category);
+            console.log('🔄 ADDING EXPENSE - Amount:', amount);
+            console.log('🔄 ADDING EXPENSE - Description:', desc);
             
-            document.getElementById('addAmount').value = '';
-            document.getElementById('addDesc').value = '';
+            // Add the expense
+            addExpense(amount, category, desc);
             
+            // Clear inputs
+            if (amountInput) amountInput.value = '';
+            if (descInput) descInput.value = '';
+            
+            // Force refresh
             renderAll();
-            alert(`✨ ${formatPeso(amount)} added to ${category.value}!`);
+            
+            // Verify
+            const allExpenses = getExpenses();
+            console.log('📊 VERIFY - Total expenses:', allExpenses.length);
+            console.log('📊 VERIFY - Shopping total:', formatPeso(getCategoryTotal(allExpenses, 'Shopping')));
+            console.log('📊 VERIFY - All expenses:', allExpenses);
+            
+            alert(`✨ ${formatPeso(amount)} added to ${category}!`);
         });
     }
 
@@ -1093,22 +1256,28 @@ document.addEventListener('DOMContentLoaded', function() {
     if (openWishBtn) {
         openWishBtn.addEventListener('click', function() {
             const form = document.getElementById('wishForm');
-            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+            if (form) form.style.display = form.style.display === 'none' ? 'block' : 'none';
         });
     }
 
     const cancelWish = document.getElementById('cancelWishBtn');
     if (cancelWish) {
         cancelWish.addEventListener('click', function() {
-            document.getElementById('wishForm').style.display = 'none';
+            const form = document.getElementById('wishForm');
+            if (form) form.style.display = 'none';
         });
     }
 
     const saveWish = document.getElementById('saveWishBtn');
     if (saveWish) {
         saveWish.addEventListener('click', function() {
-            const name = document.getElementById('wishName').value.trim();
-            const price = parseFloat(document.getElementById('wishPrice').value);
+            const nameInput = document.getElementById('wishName');
+            const priceInput = document.getElementById('wishPrice');
+            
+            if (!nameInput || !priceInput) return;
+            
+            const name = nameInput.value.trim();
+            const price = parseFloat(priceInput.value);
             
             if (!name || !price || price <= 0) {
                 alert('Please enter a valid item and price.');
@@ -1116,9 +1285,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             addWishlistItem(name, price);
-            document.getElementById('wishName').value = '';
-            document.getElementById('wishPrice').value = '';
-            document.getElementById('wishForm').style.display = 'none';
+            nameInput.value = '';
+            priceInput.value = '';
+            const form = document.getElementById('wishForm');
+            if (form) form.style.display = 'none';
             renderWishlist();
         });
     }
@@ -1132,8 +1302,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const addGoalBtn = document.getElementById('addGoalBtn');
     if (addGoalBtn) {
         addGoalBtn.addEventListener('click', function() {
-            const name = document.getElementById('goalName').value.trim();
-            const target = parseFloat(document.getElementById('goalTarget').value);
+            const nameInput = document.getElementById('goalName');
+            const targetInput = document.getElementById('goalTarget');
+            
+            if (!nameInput || !targetInput) return;
+            
+            const name = nameInput.value.trim();
+            const target = parseFloat(targetInput.value);
             
             if (!name || !target || target <= 0) {
                 alert('Please enter a valid goal.');
@@ -1141,8 +1316,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             addGoal(name, target);
-            document.getElementById('goalName').value = '';
-            document.getElementById('goalTarget').value = '';
+            nameInput.value = '';
+            targetInput.value = '';
             renderGoals();
         });
     }
@@ -1162,9 +1337,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const gmCalcBtn = document.getElementById('gmCalcBtn');
     if (gmCalcBtn) {
         gmCalcBtn.addEventListener('click', function() {
-            const item = document.getElementById('gmItem').value.trim() || 'Item';
-            const price = parseFloat(document.getElementById('gmPrice').value);
-            const uses = parseInt(document.getElementById('gmUses').value);
+            const itemInput = document.getElementById('gmItem');
+            const priceInput = document.getElementById('gmPrice');
+            const usesInput = document.getElementById('gmUses');
+            
+            if (!itemInput || !priceInput || !usesInput) return;
+            
+            const item = itemInput.value.trim() || 'Item';
+            const price = parseFloat(priceInput.value);
+            const uses = parseInt(usesInput.value);
             
             if (!price || price <= 0 || !uses || uses <= 0) {
                 alert('Please enter valid numbers.');
@@ -1173,11 +1354,16 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const perUse = price / uses;
             const resultBox = document.getElementById('gmResult');
-            resultBox.style.display = 'block';
-            document.getElementById('gmDetail').textContent = 
-                `${item} — ${formatPeso(price)} ÷ ${uses} wears = ${formatPeso(perUse)} per wear.`;
-            document.getElementById('gmVerdict').textContent = 
-                perUse < 100 ? 'APPROVED. 💅' : 'Hmm... think about it. 🤔';
+            const gmDetail = document.getElementById('gmDetail');
+            const gmVerdict = document.getElementById('gmVerdict');
+            
+            if (resultBox) resultBox.style.display = 'block';
+            if (gmDetail) {
+                gmDetail.textContent = `${item} — ${formatPeso(price)} ÷ ${uses} wears = ${formatPeso(perUse)} per wear.`;
+            }
+            if (gmVerdict) {
+                gmVerdict.textContent = perUse < 100 ? 'APPROVED. 💅' : 'Hmm... think about it. 🤔';
+            }
         });
     }
 
@@ -1185,14 +1371,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const loginPassword = document.getElementById('loginPassword');
     if (loginPassword) {
         loginPassword.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') document.getElementById('loginBtn').click();
+            if (e.key === 'Enter') {
+                const btn = document.getElementById('loginBtn');
+                if (btn) btn.click();
+            }
         });
     }
 
     const registerPassword = document.getElementById('registerPassword');
     if (registerPassword) {
         registerPassword.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') document.getElementById('registerBtn').click();
+            if (e.key === 'Enter') {
+                const btn = document.getElementById('registerBtn');
+                if (btn) btn.click();
+            }
         });
     }
 
@@ -1207,22 +1399,49 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+
+    // ──────────────────────────────────────────────
+    // INIT - Check if user is already logged in
+    // ──────────────────────────────────────────────
+    
+    if (checkLoggedInUser()) {
+        showApp();
+    } else {
+        showLanding();
+    }
+
+    console.log('🎀 Where Did My Money Go? is ready!');
+    console.log('✅ Dashboard shows ALL expenses');
+    console.log('✅ Edit and Delete buttons added');
+    console.log('✅ Date Filter: All, Week, Month, Custom');
+    console.log('✅ Export: CSV, PDF Report');
+    console.log('✅ Dark Mode toggle available');
+    console.log('✅ Mobile hamburger menu');
+    console.log('💡 New users start with ZERO expenses!');
 });
 
 // ──────────────────────────────────────────────
-// INIT
+// HELPER: DEBUG FUNCTION
 // ──────────────────────────────────────────────
 
-if (checkLoggedInUser()) {
-    showApp();
-} else {
-    showLanding();
+function debugData() {
+    console.log('🔍 === DEBUG DATA ===');
+    const expenses = getExpenses();
+    console.log('Total expenses:', expenses.length);
+    expenses.forEach((e, i) => {
+        console.log(`  ${i+1}. ${e.category}: ${formatPeso(e.amount)} - ${e.description} (${e.date})`);
+    });
+    console.log('🔍 === CATEGORY TOTALS ===');
+    CATEGORIES.forEach(c => {
+        const total = getCategoryTotal(expenses, c);
+        if (total > 0) {
+            console.log(`  ${c}: ${formatPeso(total)}`);
+        }
+    });
+    console.log('🔍 === RAW DATA ===');
+    console.log(JSON.stringify(expenses, null, 2));
+    return expenses;
 }
 
-console.log('🎀 Where Did My Money Go? is ready!');
-console.log('✅ Dashboard shows ALL expenses');
-console.log('✅ Edit and Delete buttons added');
-console.log('✅ Date Filter: All, Week, Month, Custom');
-console.log('✅ Export: CSV, PDF Report');
-console.log('✅ Dark Mode toggle available');
-console.log('💡 New users start with ZERO expenses!');
+// Make debug function available globally
+window.debug = debugData;
