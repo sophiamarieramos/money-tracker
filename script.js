@@ -368,6 +368,16 @@ function registerUser(username, password, displayName) {
     return true;
 }
 
+function resetPassword(username, newPassword) {
+    const users = getUsers();
+    if (!users[username]) {
+        return false;
+    }
+    users[username].password = newPassword;
+    saveUsers(users);
+    return true;
+}
+
 function logoutUser() {
     currentUser = null;
     localStorage.removeItem('moneyTrackerCurrentUser');
@@ -1164,14 +1174,16 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Switch between login and register
+    // Switch between login, register, and forgot password
     const showRegister = document.getElementById('showRegister');
     if (showRegister) {
         showRegister.addEventListener('click', function(e) {
             e.preventDefault();
             const loginForm = document.getElementById('loginForm');
             const registerForm = document.getElementById('registerForm');
+            const forgotForm = document.getElementById('forgotPasswordForm');
             if (loginForm) loginForm.style.display = 'none';
+            if (forgotForm) forgotForm.style.display = 'none';
             if (registerForm) registerForm.style.display = 'block';
         });
     }
@@ -1182,8 +1194,92 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             const registerForm = document.getElementById('registerForm');
             const loginForm = document.getElementById('loginForm');
+            const forgotForm = document.getElementById('forgotPasswordForm');
+            if (registerForm) registerForm.style.display = 'none';
+            if (forgotForm) forgotForm.style.display = 'none';
+            if (loginForm) loginForm.style.display = 'block';
+        });
+    }
+
+    const showForgotPassword = document.getElementById('showForgotPassword');
+    if (showForgotPassword) {
+        showForgotPassword.addEventListener('click', function(e) {
+            e.preventDefault();
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            const forgotForm = document.getElementById('forgotPasswordForm');
+            const forgotUsername = document.getElementById('forgotUsername');
+            const loginUsername = document.getElementById('loginUsername');
+            if (loginForm) loginForm.style.display = 'none';
+            if (registerForm) registerForm.style.display = 'none';
+            if (forgotForm) forgotForm.style.display = 'block';
+            if (forgotUsername && loginUsername && loginUsername.value.trim()) {
+                forgotUsername.value = loginUsername.value.trim();
+            }
+        });
+    }
+
+    const backToLogin = document.getElementById('backToLogin');
+    if (backToLogin) {
+        backToLogin.addEventListener('click', function(e) {
+            e.preventDefault();
+            const forgotForm = document.getElementById('forgotPasswordForm');
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            if (forgotForm) forgotForm.style.display = 'none';
             if (registerForm) registerForm.style.display = 'none';
             if (loginForm) loginForm.style.display = 'block';
+        });
+    }
+
+    const forgotPasswordBtn = document.getElementById('forgotPasswordBtn');
+    if (forgotPasswordBtn) {
+        forgotPasswordBtn.addEventListener('click', function() {
+            const username = document.getElementById('forgotUsername');
+            const newPassword = document.getElementById('forgotPassword');
+            const confirmPassword = document.getElementById('forgotConfirmPassword');
+
+            if (!username || !newPassword || !confirmPassword) {
+                alert('Please fill in all reset fields.');
+                return;
+            }
+
+            const userVal = username.value.trim();
+            const passVal = newPassword.value.trim();
+            const confirmVal = confirmPassword.value.trim();
+
+            if (!userVal || !passVal || !confirmVal) {
+                alert('Please enter your username and a new password.');
+                return;
+            }
+
+            if (passVal.length < 4) {
+                alert('Password must be at least 4 characters long.');
+                return;
+            }
+
+            if (passVal !== confirmVal) {
+                alert('Passwords do not match. Please try again.');
+                return;
+            }
+
+            if (!resetPassword(userVal, passVal)) {
+                alert('❌ Username not found. Please check your username or create a new account.');
+                return;
+            }
+
+            alert('✅ Password reset successfully! You can now log in with your new password.');
+            const forgotForm = document.getElementById('forgotPasswordForm');
+            const loginForm = document.getElementById('loginForm');
+            const loginUsername = document.getElementById('loginUsername');
+            const loginPassword = document.getElementById('loginPassword');
+            if (forgotForm) forgotForm.style.display = 'none';
+            if (loginForm) loginForm.style.display = 'block';
+            if (loginUsername) loginUsername.value = userVal;
+            if (loginPassword) loginPassword.value = '';
+            if (username) username.value = '';
+            if (newPassword) newPassword.value = '';
+            if (confirmPassword) confirmPassword.value = '';
         });
     }
 
@@ -1383,6 +1479,16 @@ document.addEventListener('DOMContentLoaded', function() {
         registerPassword.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 const btn = document.getElementById('registerBtn');
+                if (btn) btn.click();
+            }
+        });
+    }
+
+    const forgotPasswordInput = document.getElementById('forgotPassword');
+    if (forgotPasswordInput) {
+        forgotPasswordInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const btn = document.getElementById('forgotPasswordBtn');
                 if (btn) btn.click();
             }
         });

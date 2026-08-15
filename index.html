@@ -193,6 +193,20 @@
             text-decoration: underline;
         }
 
+        .auth-link-row {
+            text-align: right;
+            margin: -6px 0 18px;
+        }
+        .auth-link-row a {
+            color: #b35e4a;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .auth-link-row a:hover {
+            text-decoration: underline;
+        }
+
         /* ──────────────── APP LAYOUT ──────────────── */
         .app {
             display: flex;
@@ -1057,6 +1071,9 @@
                         <label><i class="fas fa-lock"></i> Password</label>
                         <input type="password" id="loginPassword" placeholder="Enter your password" />
                     </div>
+                    <div class="auth-link-row">
+                        <a href="#" id="showForgotPassword">Forgot password?</a>
+                    </div>
                     
                     <button class="btn btn-primary" id="loginBtn">Log In</button>
                     
@@ -1088,6 +1105,31 @@
                     <p class="auth-switch">
                         Already have an account? 
                         <a href="#" id="showLogin">Log in here</a>
+                    </p>
+                </div>
+
+                <div class="auth-card" id="forgotPasswordForm" style="display:none;">
+                    <h2>Reset your password 🔒</h2>
+                    <p class="auth-sub">Enter your username and create a new password.</p>
+
+                    <div class="form-group">
+                        <label><i class="fas fa-user"></i> Username</label>
+                        <input type="text" id="forgotUsername" placeholder="Type your username" />
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-lock"></i> New password</label>
+                        <input type="password" id="forgotPassword" placeholder="Create a new password" />
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-lock"></i> Confirm password</label>
+                        <input type="password" id="forgotConfirmPassword" placeholder="Confirm your new password" />
+                    </div>
+
+                    <button class="btn btn-primary" id="forgotPasswordBtn">Reset Password</button>
+
+                    <p class="auth-switch">
+                        Remembered it? 
+                        <a href="#" id="backToLogin">Back to login</a>
                     </p>
                 </div>
             </div>
